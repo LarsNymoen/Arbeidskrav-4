@@ -1,0 +1,131 @@
+---
+title: "Arbeidskrav 4"
+author: "Lars Nymoen"
+date: "20 11 2020"
+output: html_document
+---
+### DEL 2
+
+## Introduksjon
+
+Antall set på en treningsøvelse er også noe man må ta stilling til, hvis man ønsker å oppnå best mulig resultater. En tidligere studie fant at 3 set ga større styrkeøkning i peak torqu Nm enn det 1 ett gjorde (Munn, Herbert, Hancock & Gandevia, 2005). To annen studie støtter også dette synet (Paulsen, Myklestad & Raastad, 1996; Kramer et al, 1997; Bottaro, Veloso, Wagner & Gentil, 2011).    
+Min hypotese er at beinet der det er trent med 3 sett vil få en større økning i peak torque (Nm) til post i styrke enn gruppen som kun gjennomfører ett sett. 
+
+## Metode
+I denne delen er det brukt en studie som hadde 34 deltakere (menn = 16, kvinner = 18), disse ble randomisert og skulle gjennomføre alle øvelsene forskjellig på hvert bein. Det ene skulle gjennomføre ett sett, mens det andre skulle gjennomføre 3 sett. Studien var en randomisert within-subject design.
+Øvelsene deltakerne skulle gjennomføre var isokinetisk legekstensjon der de presser på en stang som beveger seg med en gitt hastighet (60, 120 eller 240 grader i sekundet) og en øvelse som var isometrisk, der stanga står stille. Intervensjonen varte i 8 uker der deltakerne trente 3 ganger i uken på underkroppsøvelser.
+
+# Statistikk
+Lager en lineær mixed modell (lmer1) som forklarer load ved hjelp av testtidspunktene og gruppene, her vises intercept for single og multiple ved pre og stigningstallet videre fra pre og mid. Figur 1 viser visuelt disse endringene med konfidensintervall ved hvert tidspunkt.
+Tabell 1 viser startverdi for de to gruppene (Intercept og groupRM10), stigningstall, standard error, t verdi samt konfidensintervall.  Dette er gjort ved å ta konfidensintervallene og koefisientene fra modell m1 til en tabell.
+
+
+
+```{r warning=FALSE, message=FALSE, include=FALSE}
+# laste inn pakke som trengs til denne oppgaven
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(emmeans)
+library(kableExtra)
+
+```
+
+
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+# laste inn data og legge det i et objekt
+isok.data <- read_csv("./data/strengthTests.csv") %>% 
+  filter(exercise == "isok.60", 
+         timepoint %in% c("pre", "post")) %>%
+# endre slik at tidspunktene kommer i riktig rekkefølge
+# endre rekkefølgen på gruppene
+  mutate(timepoint = factor(timepoint, levels = c("pre", "post")),
+         group = factor(group, levels = c("single", "multiple"))) 
+  
+```
+
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+# lagrer en modell som viser intercept og stigningstall for de to gruppene i et nytt objekt
+lmer1 <- lmer(load ~ timepoint * group + (1|subject), data = isok.data)
+
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# ser på objektet 
+lmer1 
+
+
+```
+
+ 
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+
+# konfidensintervall for single pre/post og multiple pre/post
+conf_intervals2 <- confint(lmer1)
+
+
+coefs2 <- summary(lmer1)$coef
+
+
+coef_summary2 <- cbind(coefs2, data.frame(conf_intervals2)[2:5, ])
+
+coef_summary2 %>%
+  kable(digits = c(2, 2),  
+        caption = "Tabell 1") %>%
+  kable_classic()
+
+
+
+```
+Tabell 1 viser utgangsverdi med endringer for de to testtidspunktene, standard error, t verdi og konfidensintervall. 
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+# lage graf
+est2 <- emmeans(lmer1, specs = ~ timepoint|group)
+
+est2 %>%
+  data.frame() %>%
+  mutate(timepoint = factor(timepoint, levels = c("pre", "post"))) %>%
+  
+  ggplot(aes(timepoint, emmean, group = group, color = group)) + 
+  labs(x = "Testtidspunkter",
+       y = "Peak torque (Nm)",
+       title = "Figur 1") +
+  
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), 
+                position = position_dodge(width = 0.2), 
+                width = 0.1) +
+  geom_line(position = position_dodge(width = 0.2)) +
+  geom_point(position = position_dodge(width = 0.2)) +
+  theme_minimal()
+
+
+```
+Grafen viser økning i peak torque Nm fra pre til post for begge grupper, med konfidensintervall.
+
+## Resultat
+Fra testtidspunkt pre til post økte 3 set-gruppen med 31,7 Nm fra 174,1 Nm til 205,8 Nm (Tabell 1). 1 set-gruppen økte gruppen med 7,5 Nm fra 182,1 Nm til 189,6 Nm (Tabell 1), fra testtidspunkt pre til post.
+Konfidensintervallene til de to gruppene ved pre og post var (1 set pre: Øcl 20,9 Ncl 12,9; 1 set post: Øcl 207,7 Ncl 156,5; 3 set pre: Øcl 18,67 Ncl -3,7; 3 set post Øcl 28,3 Ncl -44,2)
+
+## Diskusjon/konklusjon 
+I denne studien ser vi at det gir større økning i peak torque Nm ved å trene med 3 set versus å trene med kun 1 set (Figur 1), disse resultatene støttes av flere andre studier (Paulsen et al, 1996; Munn et al, 2005; Kramer et al, 1997; Bottaro et al, 2011). Samtidig ser man at utgangsverdien til 1 set-gruppen var høyere, noe som kan føre til at det kan være vanskeligere å oppnå lik økning som den andre gruppen. Man kan tenke seg at personene i 1 set-gruppen har bedre treningsstatus, noe som kan forklare mindre økning.
+
+Konklusjonen blir at styrketrening med 3 set over en 8 ukers periode kan gi bedre effekt enn å trene det samme bare med 1 set. 
+
+## Referanser
+
+M. Bottaro., J. Veloso., D. Wagner., P. Gentil., (2011). Resistance training for strength and muscle thickness: Effect of number of sets and muscle group trained. , 26(5), 0–264.    doi:10.1016/j.scispo.2010.09.009
+
+Kramer, J. B., Stone, M. H., O'Bryant, H. S., Conley, M. S., Johnson, R. L., Nieman, D. C., ... & Hoke, T. P. (1997). Effects of single vs. multiple sets of weight training: impact of volume, intensity, and variation. *Journal of strength and Conditioning Research*, 11, 143-147.
+
+Munn, Joanne,. Herbert, Robert D,. Hancock, Mark J,. Gandevia, Simon C. (2005). Resistance Training for Strength: Effect of Number of Sets and Contraction Speed. *Medicine & Science in Sports & Exercise*, 37(9), 1622–1626. doi:10.1249/01.mss.0000177583.41245.f8
+
+Paulsen, Gøran,. Myklestad Dag,. Raastad Truls. (1996). The Influence of Volume of Exercise on Early. Adaptations to Strength Training *Journal of Strength and Conditioning Research*, 2003, 17(1), 115–120.
+
+
+

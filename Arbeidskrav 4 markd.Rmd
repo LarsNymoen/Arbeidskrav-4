@@ -1,0 +1,124 @@
+---
+title: "Arbeidskrav 4"
+author: "Lars Nymoen"
+date: "20 11 2020"
+output: html_document
+---
+### DEL 1
+
+## Introduksjon
+
+Styrketrening er noe mange driver med, og det finnes mange ulike skoler på hvordan oppnå best resultater. Hvor høy intensitet en skal trene på er en kjent problemstilling. For eksempel om man skal trene med høy motstand og lavt antall repetisjoner eller lavere motstand og flere repetisjoner. En metaanalyse fra 2017 har funnet at trening med mer enn 60% av 1RM er fordelaktig i forhold til trening med motstand på 60% eller lavere. (Schoenfeld et al, 2017) 
+I den første delen av oppgaven skal jeg svare på om 10RM eller 30RM i legpress er fordelaktig med tanke på styrkefremgang.
+Min hypotese er at gruppen som trener 10Rm får en større økning i 1RM enn den andre gruppen.
+
+## Metode
+Forsøkspersonene var i alt 24 deltakere som gjennomførte hele intervensjonen og testene, disse ble delt inn i to grupper, en som trente med 10RM og en på 30RM. Deltakerne var alle menn og tidligere styrkeløftere i alderen 42-61 år. Denne studien var en randomisert between-subject design.  
+Intervensjonen gikk over 12 uker med 3 økter i uka, hvor hver økt er tilegnet en øvelse (benkpress, beinpress og bicepscurl). Den ene gruppen trente 10RM i 4 set, mens den andre gruppen trente 30RM i 4 set.  
+
+# Statistikk
+Lager en lineær mixed modell (m1) som forklarer load ved hjelp av testtidspunktene og gruppene, her vises intercept for 10RM og 30RM ved pre og stigningstallet videre fra pre og mid. Figur 1 viser visuelt disse endringene med konfidensintervall ved hvert tidspunkt.
+Tabell 1 viser startverdi for de to gruppene (Intercept og groupRM10), stigningstall, standard error, t verdi samt konfidensintervall.  Dette er gjort ved å ta konfidensintervallene og koefisientene fra modell m1 til en tabell.
+
+
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+# laste inn pakke som trengs til denne oppgaven
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(emmeans)
+library(kableExtra)
+```
+
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+# laste inn datasettet som skal brukes i denne oppgaven og lagre det i objektet dat
+dat <- read_excel("./data/ten_vs_thirty.xlsx", na = "NA") %>%
+  filter(exercise == "legpress") %>%
+# endre slik at tidspunktene kommer i riktig rekkefølge
+# endre rekkefølgen på gruppene
+  mutate(timepoint = factor(timepoint, levels = c("pre", "mid", "post")), 
+         group = factor(group,  levels = c("RM30", "RM10")))
+
+```
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+
+m1 <- lmer(load ~ timepoint * group + (1|subject), data = dat)
+
+
+est <- emmeans(m1, specs = ~ timepoint|group)
+
+est %>%
+  data.frame() %>%
+  mutate(timepoint = factor(timepoint, levels = c("pre", "mid", "post"))) %>%
+  
+  ggplot(aes(timepoint, emmean, group = group, color = group)) + 
+  labs(x = "Testtidspunkter",
+       y = "Legpress (kg)",
+       title = "Figur 1") +
+  
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), 
+                position = position_dodge(width = 0.2), 
+                width = 0.1) +
+  geom_line(position = position_dodge(width = 0.2)) +
+  geom_point(position = position_dodge(width = 0.2)) +
+  theme_minimal() 
+
+```
+
+
+
+Grafen viser gjennomsnittet for gruppene 10RM og 30RM for de tre testtidspunktene med øvre og nedre konfidensintervall.
+
+## Resultat
+# 30RM
+Fra testtidspunkt pre til mid økte gruppen med 35,0 kg fra 281,5 kg til 316,5. Fra mid til post øker de med ytterligere 3,9 kg (Tabell 1). 
+
+# 10RM
+Fra testtidspunkt pre til mid økte gruppen med 46,1 kg fra 273,9 kg til 320 kg. Fra mid til post øker de med ytterligere til 355,4 kg (Tabell 1).
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+conf_intervals <- confint(m1)
+
+
+coefs <- summary(m1)$coef
+
+
+coef_summary <- cbind(coefs, data.frame(conf_intervals)[3:8, ])
+
+
+coef_summary %>%
+  kable(digits = c(2, 2),  
+        caption = "Tabell 1") %>%
+  kable_classic()
+        
+
+```
+Tabell 1 viser utgangsverdi med endringer for alle testtidspunktene, standard error, t verdi og konfidensintervall.
+
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+#s e på dataen som ligger inne i m1
+summary(m1)
+
+
+```
+
+## Diskjusjon/konklusjon
+Vi ser av resultatene at gruppen som trente med 10RM hadde en større økning fra pre til post enn det 30RM gruppen hadde Figur 1). Dette fordi økningen var større i denne gruppen samenlignet med 30RM (10RM: 81,5 kg v 30RM: 38,9 kg) i beinpress. Lignende funn ble funnet i økning i beinpress, der to grupper på 9 personer gjennomførte 8 uker med styrketrening med henholdsvis 8-12RM og 25-35RM. Her økte gruppen som trente 8-12RM med 19,6% sammenlignet med 8,8% (Schoenfeld et al, 2015; Schoenfeld et al, 2017). Dette kan tyde på at trening med lavere antall repetisjoner og høyere belastning er mer anbefalt og kan gi større økning i styrke enn motsatt type trening.
+Konfidensintervallene trekker også i retning av at 10RM er mer hensiktsmessig ved at intervallet ikke inneholder 0. 
+Studien kan tenkes å støtte hypotesen om at 10RM øker mer enn 30RM i 1RM beinpress.
+
+
+
+# Referanser:
+
+Schoenfeld, Brad J., Peterson, Mark D., Ogborn, Dan,. Contreras, Bret., Sonmez, Gul T., (2015). Effects of Low- Versus High-Load Resistance Training on Muscle Strength and Hypertrophy in Well-Trained Men. *Journal of Strength and Conditioning Research*, 1–. doi:10.1519/JSC.0000000000000958
+
+Schoenfeld, Brad, J., Grgic, Jozo., Ogborn, Dan., Krieger, James W.,  (2017). Strength and hypertrophy adaptations between low- versus high-load resistance training. *Journal of Strength and Conditioning Research*, 1–. doi:10.1519/JSC.0000000000002200 
+
+  
